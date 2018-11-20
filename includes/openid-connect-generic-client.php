@@ -217,7 +217,8 @@ class OpenID_Connect_Generic_Client {
 		$request['headers']['Host'] = $host;
 
 		// attempt the request including the access token in the query string for backwards compatibility
-		$response = wp_remote_post( $this->endpoint_userinfo, $request );
+		//$response = wp_remote_post( $this->endpoint_userinfo, $request );
+		$response = wp_remote_get( $this->endpoint_userinfo, $request );
 
 		if ( is_wp_error( $response ) ){
 			$response->add( 'request_userinfo' , __( 'Request for userinfo failed.' ) );

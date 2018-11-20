@@ -356,6 +356,19 @@ class OpenID_Connect_Generic_Client_Wrapper {
 		$subject_identity = $client->get_subject_identity( $id_token_claim );
 		$user = $this->get_user_by_identity( $subject_identity );
 
+		error_log('ID Token is ' . print_r($id_token_claim,TRUE));
+		error_log('User Claim is ' . print_r($user_claim,TRUE));
+
+		$copy_properties = array('email_verified', 'family_name', 'given_name', 'phone_number', 'preferred_username', 'email');
+
+		foreach( $copy_properties as $key) {
+		   if (isset($id_token_claim[$key]) && !isset($user_claim[$key])) {
+                      $user_claim[$key] = $id_token_claim[$key];
+                      error_log('CREATE USER key ' . $key . ' copied: ' . $id_token_claim[$key]);	
+		   }
+		}
+
+
 		// if we didn't find an existing user, we'll need to create it
 		if ( ! $user ) {
 			$user = $this->create_new_user( $subject_identity, $user_claim );
@@ -381,7 +394,6 @@ class OpenID_Connect_Generic_Client_Wrapper {
 		
 		// log our success
 		$this->logger->log( "Successful login for: {$user->user_login} ({$user->ID})", 'login-success' );
-
 		// redirect back to the origin page if enabled
 		$redirect_url = isset( $_COOKIE[ $this->cookie_redirect_key ] ) ? esc_url( $_COOKIE[ $this->cookie_redirect_key ] ) : FALSE;
 
@@ -425,6 +437,10 @@ class OpenID_Connect_Generic_Client_Wrapper {
 		update_user_meta( $user->ID, 'openid-connect-generic-last-token-response', $token_response );
 		update_user_meta( $user->ID, 'openid-connect-generic-last-id-token-claim', $id_token_claim );
 		update_user_meta( $user->ID, 'openid-connect-generic-last-user-claim', $user_claim );
+		if (isset($user_claim['email_verified'])) {
+			$wcvery = update_user_meta( $user->ID, 'wcemailverified', 'true' );
+			error_log( "return={$wcvery}: changed wcemailverified to true for: {$user_claim['email']} ({$user->ID}) to verified" );
+		}
 
 		// Create the WP session, so we know its token
 		$expiration = time() + apply_filters( 'auth_cookie_expiration', 2 * DAY_IN_SECONDS, $user->ID, FALSE );
@@ -572,7 +588,7 @@ class OpenID_Connect_Generic_Client_Wrapper {
 				$string .= substr( $format, $i, $match[ 1 ] - $i );
 				if ( ! isset( $user_claim[ $key ] ) ) {
 					if ( $error_on_missing_key ) {
-						return new WP_Error( 'incomplete-user-claim', __( 'User claim incomplete' ), $user_claim );
+						return new WP_Error( 'incomplete-user-claim', __( 'User claim incomplete, missing key {' . $key . '} from ' . $format ), $user_claim );
 					}
 				} else {
 					$string .= $user_claim[ $key ];

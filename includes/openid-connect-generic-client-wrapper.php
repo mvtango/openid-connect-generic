@@ -611,7 +611,7 @@ class OpenID_Connect_Generic_Client_Wrapper {
 		$displayname = $subject_identity;
 
 		$values_missing = false;
-
+		error_log("create new user, getting values from " . print_r($user_claim,TRUE));
 		// allow claim details to determine username, email, nickname and displayname.
 		$_email = $this->get_email_from_claim( $user_claim, true );
 		if ( is_wp_error( $_email ) ) {
@@ -692,6 +692,48 @@ class OpenID_Connect_Generic_Client_Wrapper {
 				return $this->update_existing_user( $uid, $subject_identity );
 			}
 		}
+
+		// Problem 1: User Name is emailwithoutdotsorat
+                // Problem 2: id_token is full of info that is not used
+                // 
+/*
+{
+  "jti": "ST-170-9lcC81GWqOGyfBUEemj0g66fgiY9a44a496673c",
+  "iss": "https://staging.dpa-id.de/cas/oidc",
+  "aud": "SHOPINFOCOM",
+  "exp": 1542737225,
+  "iat": 1542708425,
+  "nbf": 1542708125,
+  "sub": "martin.virtel@dpa-info.com",
+  "amr": [
+    "MongoDbAuthenticationHandler"
+  ],
+  "state": "c2fed4a4a5ca302013393677f130a136",
+  "nonce": "",
+  "at_hash": "rZqr1I5z8IxxkwdfFUpvHw",
+  "email": "martin.virtel@dpa-info.com",
+  "email_verified": "true",
+  "family_name": "Virtel",
+  "given_name": "Martin",
+  "phone_number": "4046072585",
+  "preferred_username": "martin.virtel@dpa-info.com"
+}
+*/
+		// Problem 3: Email is unverifed even if user_claim states otherwise
+		/*
+		(
+		    [sub] => martin.virtel@dpa-info.com
+		    [auth_time] => 1542713760
+		    [attributes] => Array
+			(
+			    [email_verified] => true
+			)
+
+		    [id] => martin.virtel@dpa-info.com
+		)
+		*/
+
+
 
 		// allow other plugins / themes to determine authorization 
 		// of new accounts based on the returned user claim
